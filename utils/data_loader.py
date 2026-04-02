@@ -22,7 +22,7 @@ def _public_csv_url(spreadsheet_id: str, gid: int = 0) -> str:
 
 def _load_public_sheet(spreadsheet_id: str) -> pd.DataFrame:
     url = _public_csv_url(spreadsheet_id)
-    return pd.read_csv(url)
+    return pd.read_csv(url, dtype=str, keep_default_na=False)
 
 
 @st.cache_data(ttl=3600, show_spinner="Загрузка данных из Google Sheets...")
@@ -34,11 +34,12 @@ def load_raw_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 
 def _clean_numeric(series: pd.Series) -> pd.Series:
-    if series.dtype == "object":
-        cleaned = series.astype(str).str.replace(r"[^\d\-.,]", "", regex=True)
-        cleaned = cleaned.str.replace(",", ".")
-        return pd.to_numeric(cleaned, errors="coerce").fillna(0)
-    return pd.to_numeric(series, errors="coerce").fillna(0)
+    cleaned = series.astype(str)
+    cleaned = cleaned.str.replace("\u00a0", "", regex=False)
+    cleaned = cleaned.str.replace(" ", "", regex=False)
+    cleaned = cleaned.str.replace(r"[^\d\-.,]", "", regex=True)
+    cleaned = cleaned.str.replace(",", ".", regex=False)
+    return pd.to_numeric(cleaned, errors="coerce").fillna(0)
 
 
 def _normalize_id(series: pd.Series) -> pd.Series:
